@@ -12,36 +12,42 @@ import kotlinx.coroutines.reactor.mono
 class ReactorController {
     val logger: Logger = Logger.getLogger(ReactorController::class.simpleName)
 
-    @GetMapping("/wait2sJava")
-    fun wait2sJava(): Mono<Int> =
-        doSomething(1)
-            .flatMap(this::doSomething)
-            .flatMap(this::doSomething)
-            .flatMap(this::doSomething)
-            .flatMap(this::doSomething)
-            .flatMap(this::doSomething)
-            .flatMap(this::doSomething)
-            .flatMap(this::doSomething)
-            .flatMap(this::doSomething)
-            .flatMap(this::doSomething)
-            .flatMap(this::doSomething)
+    @GetMapping("/wait1sJava")
+    fun wait1sJava(): Mono<Int> =
+        make10ReactiveCalls(1) { make10ReactiveCalls(it, this::doSomething) }
 
-    @GetMapping("/wait2sKotlin")
-    fun wait2sKotlin(): Mono<Int> = mono {
-        val a = doSomething(1).awaitSingle()
-        val b = doSomething(a).awaitSingle()
-        val c = doSomething(b).awaitSingle()
-        val d = doSomething(c).awaitSingle()
-        val e = doSomething(d).awaitSingle()
-        val f = doSomething(e).awaitSingle()
-        val g = doSomething(f).awaitSingle()
-        val h = doSomething(g).awaitSingle()
-        val i = doSomething(h).awaitSingle()
-        val j = doSomething(i).awaitSingle()
-        doSomething(j).awaitSingle()
+
+    @GetMapping("/wait1sKotlin")
+    fun wait1sKotlin(): Mono<Int> =
+        do10CallsWrappedInCoroutine(1) { do10CallsWrappedInCoroutine(it, this::doSomething) }
+
+    fun do10CallsWrappedInCoroutine(x: Int, foo: (Int) -> Mono<Int>): Mono<Int> = mono {
+        val a = foo(x).awaitSingle()
+        val b = foo(a).awaitSingle()
+        val c = foo(b).awaitSingle()
+        val d = foo(c).awaitSingle()
+        val e = foo(d).awaitSingle()
+        val f = foo(e).awaitSingle()
+        val g = foo(f).awaitSingle()
+        val h = foo(g).awaitSingle()
+        val i = foo(h).awaitSingle()
+        val j = foo(i).awaitSingle()
+        foo(j).awaitSingle()
     }
 
-    fun doSomething(value: Int): Mono<Int> =
-        Mono.just(value).delayElement(Duration.ofMillis(200L))
+    fun make10ReactiveCalls(x: Int, foo: (Int) -> Mono<Int>): Mono<Int> =
+        foo(x)
+            .flatMap(foo)
+            .flatMap(foo)
+            .flatMap(foo)
+            .flatMap(foo)
+            .flatMap(foo)
+            .flatMap(foo)
+            .flatMap(foo)
+            .flatMap(foo)
+            .flatMap(foo)
+            .flatMap(foo)
 
+    fun doSomething(value: Int): Mono<Int> =
+        Mono.just(value).delayElement(Duration.ofMillis(10L))
 }
